@@ -1,5 +1,5 @@
 {
-    "name": "vizuall/fluid-size",
+    "name": "statamic-addon/fluid-size",
     "description": "Vizuall Fluid Size fieldtypes",
     "type": "statamic-addon",
     "license": "proprietary",
