@@ -1,0 +1,28 @@
+{
+    "name": "vizuall/fluid-size",
+    "description": "Vizuall Fluid Size fieldtypes",
+    "type": "statamic-addon",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "statamic/cms": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vizuall\\FluidSize\\": "src/"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Vizuall Fluid Size",
+            "provider": "Vizuall\\FluidSize\\AddonServiceProvider"
+        },
+        "laravel": {
+            "providers": [
+                "Vizuall\\FluidSize\\AddonServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
