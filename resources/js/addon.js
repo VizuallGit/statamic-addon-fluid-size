@@ -535,7 +535,7 @@
             },
             emits: ['update:value', 'focus', 'blur'],
             setup(props, { emit }) {
-                const { inject, computed, ref } = window.Vue;
+                const { inject, computed, ref, watchEffect } = window.Vue;
 
                 const LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
                 const PREVIEW = {
@@ -604,9 +604,60 @@
                 const headingUpper = computed(() => !!publishContext?.values?.value?.font_family?.headings_uppercase);
                 const baseFont     = computed(() => publishContext?.values?.value?.font_family?.base || null);
 
-                const FW = { 'font-light': '300', 'font-regular': '400', 'font-medium': '500', 'font-semibold': '600', 'font-bold': '700' };
-                const headingWeight = computed(() => FW[publishContext?.values?.value?.font_family?.headline_font_weight] || '700');
-                const baseWeight    = computed(() => FW[publishContext?.values?.value?.font_family?.base_font_weight] || '400');
+                const LEGACY_FW = { 'font-light': '300', 'font-regular': '400', 'font-medium': '500', 'font-semibold': '600', 'font-bold': '700' };
+                function resolveWeight(val, fallback) {
+                    if (val == null) return fallback;
+                    const s = String(val);
+                    if (/^\d+$/.test(s)) return s;
+                    return LEGACY_FW[s] || fallback;
+                }
+                const headingWeight = computed(() => resolveWeight(publishContext?.values?.value?.font_family?.headline_font_weight, '700'));
+                const baseWeight    = computed(() => resolveWeight(publishContext?.values?.value?.font_family?.base_font_weight, '400'));
+
+                const customFonts = computed(() => publishContext?.values?.value?.custom_fonts || []);
+
+                function extractFontFamily(filename) {
+                    const stem = filename.replace(/\.[^.]+$/, '').replace(/\s*\(\d+\)$/, '').trim();
+                    if (/icon|symbol|awesome|material/i.test(stem)) return '';
+                    const suffixes = ['VariableFont','Variable','ExtraLight','UltraLight','ExtraBold','UltraBold',
+                        'SemiBold','DemiBold','Thin','Light','Regular','Normal','Medium','Bold','Black','Heavy',
+                        'Italic','Oblique','Expanded','Narrow','wght','ital'];
+                    const pattern = new RegExp('[-_ ](' + suffixes.join('|') + ').*$', 'i');
+                    return stem.replace(pattern, '').replace(/[-_]?[1-9]00$/, '').trim();
+                }
+
+                function buildFontFaceCSS(rows) {
+                    return rows
+                        .filter(f => f.file && !String(f.file).startsWith('{'))
+                        .map(f => {
+                            const family = extractFontFamily(String(f.file));
+                            if (!family) return '';
+                            const format = f.variable ? 'woff2-variations' : 'woff2';
+                            const weight = f.variable ? '100 900' : (f.weight || '400');
+                            const encoded = String(f.file).split('/').map(encodeURIComponent).join('/');
+                            return `@font-face{font-family:"${family}";src:url("/fonts/${encoded}") format("${format}");font-weight:${weight};font-display:swap;}`;
+                        })
+                        .join('');
+                }
+
+                function getOrCreateFontStyle() {
+                    let style = document.getElementById('cp-custom-fonts');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = 'cp-custom-fonts';
+                        document.head.appendChild(style);
+                    }
+                    return style;
+                }
+
+                // Injecter gemte fonte straks (fra preload)
+                getOrCreateFontStyle().textContent = buildFontFaceCSS(props.meta?.customFonts || []);
+
+                // Opdater reaktivt ved formændringer
+                watchEffect(() => {
+                    const css = buildFontFaceCSS(customFonts.value);
+                    if (css) getOrCreateFontStyle().textContent = css;
+                });
 
                 function setSize(level, handle) {
                     selected.value = { ...selected.value, [level]: handle };
