@@ -758,4 +758,97 @@
         });
 
     });
+
+    // ── Font Family Selector fieldtype ───────────────────────────────────────
+    Statamic.$components.register('font-family-selector-fieldtype', {
+        props: {
+            value:  { default: null },
+            meta:   { type: Object, default: () => ({}) },
+            config: { type: Object, default: () => ({}) },
+        },
+        emits: ['update:value'],
+        setup(props, { emit }) {
+            const { computed } = window.Vue;
+            const fonts = props.meta.fonts || [];
+            const options = computed(() => {
+                const list = (props.value && !fonts.includes(props.value))
+                    ? [props.value, ...fonts]
+                    : fonts;
+                return list.map(f => ({ label: f, value: f }));
+            });
+            return { options, emit };
+        },
+        template: `
+            <ui-combobox
+                :options="options"
+                :model-value="value"
+                :searchable="true"
+                :clearable="true"
+                placeholder="— Vælg font —"
+                @update:modelValue="emit('update:value', $event)"
+            />
+        `
+    });
+
+    // ── Font Uploader fieldtype ───────────────────────────────────────────────
+    Statamic.$components.register('font-uploader-fieldtype', {
+        props: {
+            value:  { default: null },
+            meta:   { type: Object, default: () => ({}) },
+            config: { type: Object, default: () => ({}) },
+        },
+        emits: ['update:value'],
+        setup(props, { emit }) {
+            const { ref, computed } = window.Vue;
+            const error = ref(null);
+            const fileInput = ref(null);
+
+            function stemName(filename) {
+                return filename
+                    .replace(/\.[^.]+$/, '')
+                    .replace(/\s*\(\d+\)$/, '')
+                    .trim();
+            }
+
+            const displayName = computed(() => {
+                if (!props.value) return null;
+                if (props.value.startsWith('{')) {
+                    try { return stemName(JSON.parse(props.value).filename ?? ''); } catch { return null; }
+                }
+                return stemName(props.value);
+            });
+
+            function selectFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                event.target.value = '';
+                const allowed = ['woff2', 'woff', 'ttf', 'otf'];
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                if (!allowed.includes(ext)) {
+                    error.value = 'Ugyldig filtype (.woff2 / .woff / .ttf / .otf)';
+                    setTimeout(() => { error.value = null; }, 4000);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    emit('update:value', JSON.stringify({ filename: file.name, data: e.target.result }));
+                };
+                reader.readAsDataURL(file);
+            }
+
+            return { error, selectFile, displayName, fileInput };
+        },
+        template: `
+            <div class="flex items-center gap-2">
+                <input ref="fileInput" type="file" class="sr-only" accept=".woff2,.woff,.ttf,.otf" @change="selectFile">
+                <template v-if="displayName">
+                    <span class="font-medium">{{ displayName }}</span>
+                    <ui-button variant="ghost" size="sm" text="Erstat" @click="fileInput.click()" />
+                </template>
+                <ui-button v-else variant="primary" text="Vælg font-fil" @click="fileInput.click()" />
+                <span v-if="error" class="text-sm text-red">{{ error }}</span>
+            </div>
+        `
+    });
+
 }());
