@@ -1,6 +1,22 @@
 (function () {
     'use strict';
 
+    // Injicér @font-face for alle fonte i public/fonts/
+    Statamic.booting(() => {
+        if (document.getElementById('cp-fonts')) return;
+        const fonts = Statamic.$config.get('cp-fonts') || [];
+        if (!fonts.length) return;
+        const s = document.createElement('style');
+        s.id = 'cp-fonts';
+        s.textContent = fonts.map(({ family, file, variable }) => {
+            const encoded = encodeURIComponent(file);
+            const format  = variable ? 'woff2-variations' : 'woff2';
+            const weight  = variable ? '100 900' : '400';
+            return `@font-face{font-family:"${family}";src:url("/fonts/${encoded}") format("${format}");font-weight:${weight};font-display:swap;}`;
+        }).join('');
+        document.head.appendChild(s);
+    });
+
     Statamic.booting(() => {
         const { h, ref, computed } = window.Vue;
 
