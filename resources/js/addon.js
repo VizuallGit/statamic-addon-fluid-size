@@ -545,6 +545,23 @@
 
                 const publishContext = inject('PublishContainerContext', null);
 
+                const adobeKits = computed(() => publishContext?.values?.value?.adobe_kits || []);
+
+                watchEffect(() => {
+                    adobeKits.value.forEach(kit => {
+                        const url = kit?.url;
+                        if (!url) return;
+                        const id = 'cp-adobe-kit-' + url.replace(/[^a-z0-9]/gi, '');
+                        if (!document.getElementById(id)) {
+                            const link = document.createElement('link');
+                            link.rel  = 'stylesheet';
+                            link.id   = id;
+                            link.href = url;
+                            document.head.appendChild(link);
+                        }
+                    });
+                });
+
                 const fluidSizes = computed(() => {
                     const fs = publishContext?.values?.value?.fluid_sizes;
                     if (!fs) return [];
@@ -603,6 +620,23 @@
                 const headingFont  = computed(() => publishContext?.values?.value?.font_family?.headings || null);
                 const headingUpper = computed(() => !!publishContext?.values?.value?.font_family?.headings_uppercase);
                 const baseFont     = computed(() => publishContext?.values?.value?.font_family?.base || null);
+
+                const headingFVS = computed(() => {
+                    const wdth = publishContext?.values?.value?.font_family?.heading_wdth;
+                    const ital = publishContext?.values?.value?.font_family?.heading_ital;
+                    const parts = [];
+                    if (wdth) parts.push(`'wdth' ${wdth}`);
+                    if (ital) parts.push(`'ital' 1`);
+                    return parts.length ? parts.join(', ') : null;
+                });
+                const baseFVS = computed(() => {
+                    const wdth = publishContext?.values?.value?.font_family?.base_wdth;
+                    const ital = publishContext?.values?.value?.font_family?.base_ital;
+                    const parts = [];
+                    if (wdth) parts.push(`'wdth' ${wdth}`);
+                    if (ital) parts.push(`'ital' 1`);
+                    return parts.length ? parts.join(', ') : null;
+                });
 
                 const LEGACY_FW = { 'font-light': '300', 'font-regular': '400', 'font-medium': '500', 'font-semibold': '600', 'font-bold': '700' };
                 function resolveWeight(val, fallback) {
@@ -724,14 +758,15 @@
                                     h('div', {
                                         class: 'fluid-ft-preview-text flex-1 min-w-0 overflow-hidden',
                                         style: {
-                                            fontSize:      fontSize || null,
-                                            lineHeight:    key === 'p' ? '1.6' : '1.25',
-                                            fontWeight:    key === 'p' ? baseWeight.value : headingWeight.value,
-                                            fontFamily:    key === 'p' ? (baseFont.value || null) : (headingFont.value || null),
-                                            textTransform: (key !== 'p' && headingUpper.value) ? 'uppercase' : null,
-                                            display:           '-webkit-box',
-                                            WebkitLineClamp:   key === 'p' ? '3' : '1',
-                                            WebkitBoxOrient:   'vertical',
+                                            fontSize:              fontSize || null,
+                                            lineHeight:            key === 'p' ? '1.6' : '1.25',
+                                            fontWeight:            key === 'p' ? baseWeight.value : headingWeight.value,
+                                            fontFamily:            key === 'p' ? (baseFont.value || null) : (headingFont.value || null),
+                                            fontVariationSettings: key === 'p' ? (baseFVS.value || null) : (headingFVS.value || null),
+                                            textTransform:         (key !== 'p' && headingUpper.value) ? 'uppercase' : null,
+                                            display:               '-webkit-box',
+                                            WebkitLineClamp:       key === 'p' ? '3' : '1',
+                                            WebkitBoxOrient:       'vertical',
                                         },
                                     }, key === 'p' ? PREVIEW.p : (previewText.value || PREVIEW.default)),
                                     h('span', {
@@ -770,11 +805,12 @@
         setup(props, { emit }) {
             const { computed } = window.Vue;
             const fonts = props.meta.fonts || [];
+            const toLabel = f => f.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             const options = computed(() => {
                 const list = (props.value && !fonts.includes(props.value))
                     ? [props.value, ...fonts]
                     : fonts;
-                return list.map(f => ({ label: f, value: f }));
+                return list.map(f => ({ label: toLabel(f), value: f }));
             });
             return { options, emit };
         },
