@@ -703,10 +703,12 @@
                 // Injecter gemte fonte straks (fra preload)
                 getOrCreateFontStyle().textContent = buildFontFaceCSS(props.meta?.customFonts || []);
 
-                // Opdater reaktivt ved formændringer
+                // Opdater reaktivt ved formændringer — brug preload-fonte som fallback
                 watchEffect(() => {
-                    const css = buildFontFaceCSS(customFonts.value);
-                    if (css) getOrCreateFontStyle().textContent = css;
+                    const rows = customFonts.value && customFonts.value.length
+                        ? customFonts.value
+                        : (props.meta?.customFonts || []);
+                    getOrCreateFontStyle().textContent = buildFontFaceCSS(rows);
                 });
 
                 function setSize(level, handle) {

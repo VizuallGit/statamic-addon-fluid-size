@@ -33,11 +33,25 @@ class AddonServiceProvider extends BaseAddonServiceProvider
                 $family   = Fieldtypes\FontFamilySelector::extractFamily($stem);
                 if (! $family) continue;
                 $variable = (bool) preg_match('/VariableFont|Variable/i', $stem);
-                $fonts[]  = ['family' => $family, 'file' => $filename, 'variable' => $variable];
+                $weight   = static::extractWeight($stem);
+                $fonts[]  = ['family' => $family, 'file' => $filename, 'variable' => $variable, 'weight' => $weight];
             }
 
             Statamic::provideToScript(['cp-fonts' => array_values($fonts)]);
         });
+    }
+
+    private static function extractWeight(string $stem): string
+    {
+        $s = strtolower($stem);
+        if (str_contains($s, 'thin'))                            return '100';
+        if (preg_match('/extralight|ultralight/', $s))           return '200';
+        if (str_contains($s, 'light'))                           return '300';
+        if (str_contains($s, 'medium'))                          return '500';
+        if (preg_match('/semibold|demibold/', $s))               return '600';
+        if (preg_match('/extrabold|ultrabold|black|heavy/', $s)) return '800';
+        if (str_contains($s, 'bold'))                            return '700';
+        return '400';
     }
 
     protected $scripts = [
