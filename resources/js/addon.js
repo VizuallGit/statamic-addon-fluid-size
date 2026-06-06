@@ -8,11 +8,11 @@
         if (!fonts.length) return;
         const s = document.createElement('style');
         s.id = 'cp-fonts';
-        s.textContent = fonts.map(({ family, file, variable }) => {
+        s.textContent = fonts.map(({ family, file, variable, weight }) => {
             const encoded = encodeURIComponent(file);
             const format  = variable ? 'woff2-variations' : 'woff2';
-            const weight  = variable ? '100 900' : '400';
-            return `@font-face{font-family:"${family}";src:url("/fonts/${encoded}") format("${format}");font-weight:${weight};font-display:swap;}`;
+            const w       = variable ? '100 900' : (weight || '400');
+            return `@font-face{font-family:"${family}";src:url("/fonts/${encoded}") format("${format}");font-weight:${w};font-display:swap;}`;
         }).join('');
         document.head.appendChild(s);
     });
